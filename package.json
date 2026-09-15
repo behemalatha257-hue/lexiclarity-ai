@@ -1,0 +1,40 @@
+{
+  "name": "lexiclarity-ai",
+  "version": "1.0.0",
+  "description": "GenAI-Powered Legal Assistance & Access Platform - Simplifying, Comparing, and Navigating Legal Documents",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test": "node test_runner.js"
+  },
+  "keywords": [
+    "legal-tech",
+    "genai",
+    "contract-analysis",
+    "accessibility",
+    "gemini",
+    "document-simplifier",
+    "legal-assistance"
+  ],
+  "author": "LexiClarity Team",
+  "license": "MIT",
+  "dependencies": {
+    "@google/generative-ai": "^0.24.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.0.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^7.0.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testTimeout": 10000,
+    "verbose": true
+  }
+}

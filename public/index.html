@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LexiClarity AI - GenAI Legal Assistance & Accessibility Platform</title>
+  <meta name="description" content="Empowering everyday people and businesses with AI-powered legal document simplification, risk radar, redline comparison, grounded Q&A, and attorney consultation packets.">
+  
+  <!-- Modern & Editorial Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=JetBrains+Mono:wght@400;600;800&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- Accessibility Live Region for Screen Readers -->
+  <div id="ariaLiveRegion" class="hidden" aria-live="polite"></div>
+
+  <!-- Header & Toolbar -->
+  <header class="app-header" role="banner">
+    <div class="header-container">
+      <div class="brand-block">
+        <div class="brand-icon" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>
+        </div>
+        <div class="brand-text">
+          <h1>LexiClarity AI</h1>
+          <p>Accessible Legal Intelligence & Document Navigator</p>
+        </div>
+      </div>
+
+      <!-- Theme Switcher & Accessibility Toolbar -->
+      <div class="header-actions">
+        <!-- Sentimental B&W Mode Switcher -->
+        <button type="button" class="theme-switch-btn" id="themeToggleBtn" title="Switch between Paper White and Obsidian Black theme">
+          <span id="themeToggleIcon">⚫</span>
+          <span id="themeToggleText">Obsidian Black</span>
+        </button>
+
+        <div class="accessibility-bar" role="toolbar" aria-label="Accessibility Settings">
+          <button type="button" class="a11y-btn" id="toggleDyslexiaBtn" title="Toggle Dyslexia-friendly typography" aria-pressed="false">
+            <span>👓 Dyslexia Font</span>
+          </button>
+          <button type="button" class="a11y-btn" id="toggleContrastBtn" title="Toggle High-Contrast Mode (WCAG AAA)" aria-pressed="false">
+            <span>🌓 High Contrast</span>
+          </button>
+          <button type="button" class="a11y-btn" id="decreaseFontBtn" title="Decrease Font Size">A-</button>
+          <button type="button" class="a11y-btn" id="resetFontBtn" title="Reset Font Size">A</button>
+          <button type="button" class="a11y-btn" id="increaseFontBtn" title="Increase Font Size">A+</button>
+        </div>
+
+        <button type="button" class="btn-subtle btn-sm" id="openSettingsBtn" title="Configure Gemini API Key & System Settings">
+          ⚙️ Settings
+        </button>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <nav class="nav-tablist" role="tablist" aria-label="Primary Navigation">
+      <button type="button" class="nav-tab-btn active" data-tab="analyzerTab" role="tab" aria-selected="true" id="tab-analyzer">
+        🛡️ Document Analyzer
+      </button>
+      <button type="button" class="nav-tab-btn" data-tab="compareTab" role="tab" aria-selected="false" id="tab-compare">
+        ⚖️ Side-by-Side Redline
+      </button>
+      <button type="button" class="nav-tab-btn" data-tab="chatTab" role="tab" aria-selected="false" id="tab-chat">
+        💬 Grounded AI Chat
+      </button>
+      <button type="button" class="nav-tab-btn" data-tab="simulatorTab" role="tab" aria-selected="false" id="tab-simulator">
+        🔮 What-If Simulator
+      </button>
+      <button type="button" class="nav-tab-btn" data-tab="timelineTab" role="tab" aria-selected="false" id="tab-timeline">
+        📅 Obligation Calendar
+      </button>
+      <button type="button" class="nav-tab-btn" data-tab="attorneyTab" role="tab" aria-selected="false" id="tab-attorney">
+        💼 Attorney Briefing Packet
+      </button>
+      <button type="button" class="nav-tab-btn" data-tab="dictionaryTab" role="tab" aria-selected="false" id="tab-dictionary">
+        📖 Plain-English Glossary
+      </button>
+    </nav>
+  </header>
+
+  <!-- Main View Container -->
+  <main class="main-wrapper" id="mainContent">
+
+    <!-- TAB 1: DOCUMENT ANALYZER & CLAUSERADAR -->
+    <section class="app-view-section active" id="analyzerTab" role="tabpanel" aria-labelledby="tab-analyzer">
+      <div class="grid-2col">
+        <!-- Input & Ingestion Card -->
+        <div class="card-glass">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+            <h3>Input Legal Document</h3>
+            <div style="width: 230px;">
+              <select id="sampleDocSelect" class="form-select" aria-label="Load Sample Contract">
+                <option value="lease">Sample: Residential Lease (High Risk)</option>
+                <option value="ndaStandard">Sample: Standard Mutual NDA</option>
+                <option value="ndaVendor">Sample: Aggressive Vendor NDA</option>
+                <option value="freelanceContract">Sample: Freelancer Work-for-Hire</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Drag and Drop Dropzone -->
+          <div class="dropzone" id="dropZone" tabindex="0" role="button" aria-label="Upload document file">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-bottom:0.5rem;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <p><strong>Click to upload</strong> or drag & drop a contract (.txt, .md, .doc)</p>
+            <input type="file" id="fileUploadInput" class="hidden" accept=".txt,.md,.doc,.docx,.json">
+          </div>
+
+          <div id="piiShieldContainer"></div>
+
+          <label for="documentInput" style="font-size:0.85rem; color:var(--text-secondary); display:block; margin-bottom:0.4rem; font-weight:600;">
+            Or paste agreement text below:
+          </label>
+          <textarea id="documentInput" class="textarea-legal" placeholder="Paste contract text, lease, terms of service, or employment agreement here..."></textarea>
+
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:1.25rem;">
+            <label style="font-size:0.85rem; color:var(--text-secondary); display:flex; align-items:center; gap:0.5rem; cursor:pointer; font-weight:600;">
+              <input type="checkbox" id="autoSanitizeCheck" checked>
+              <span>Auto-redact PII before AI processing (LexiGuard)</span>
+            </label>
+            <button type="button" class="btn-primary" id="runAnalysisBtn">
+              <span>Analyze Document</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Quick Info & Instructions Card -->
+        <div class="card-glass">
+          <h3>ClauseRadar™ Intelligence Matrix</h3>
+          <p style="font-size:0.9rem; color:var(--text-secondary); margin-bottom:1.25rem;">
+            LexiClarity scans every paragraph for predatory traps, calculates liability exposure, and translates convoluted legal jargon into clear plain English.
+          </p>
+
+          <div style="display:flex; flex-direction:column; gap:0.85rem;">
+            <div style="background:var(--bg-inset); padding:1rem; border-radius:var(--radius-md); border-left:4px solid var(--text-primary);">
+              <strong style="font-size:0.88rem;">🚨 Critical Traps Detected:</strong>
+              <p style="font-size:0.82rem; color:var(--text-secondary); margin-top:0.25rem;">Unilateral Indemnification, Stealth Auto-Renewals, Mandatory Arbitration Bans, and Accelerated Default.</p>
+            </div>
+            <div style="background:var(--bg-inset); padding:1rem; border-radius:var(--radius-md); border-left:4px solid var(--text-primary);">
+              <strong style="font-size:0.88rem;">🔒 Zero-Knowledge Privacy:</strong>
+              <p style="font-size:0.82rem; color:var(--text-secondary); margin-top:0.25rem;">All personal identifiers (SSNs, names, phone numbers, addresses) are scrubbed locally before analysis.</p>
+            </div>
+            <div style="background:var(--bg-inset); padding:1rem; border-radius:var(--radius-md); border-left:4px solid var(--text-primary);">
+              <strong style="font-size:0.88rem;">🔊 Universal Accessibility:</strong>
+              <p style="font-size:0.82rem; color:var(--text-secondary); margin-top:0.25rem;">Built-in speech synthesis (TTS) to read clauses aloud, font scalers, and dyslexia-friendly typography.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Analysis Results Area -->
+      <div id="analysisResults" class="hidden">
+        <!-- Safety Score Dashboard -->
+        <div class="card-glass">
+          <div class="score-dashboard-grid">
+            <div class="score-dial-card">
+              <svg class="score-dial-svg" viewBox="0 0 160 160">
+                <circle class="score-bg-circle" cx="80" cy="80" r="65"></circle>
+                <circle class="score-progress-circle" id="scoreCircleProgress" cx="80" cy="80" r="65" stroke-dasharray="408.4" stroke-dashoffset="100"></circle>
+              </svg>
+              <div class="score-center-text">
+                <div class="score-number" id="scoreValue">--</div>
+                <div class="score-grade-text" id="scoreGrade">Grade: -</div>
+                <div style="margin-top:0.35rem;"><span class="badge" id="scoreBadge">Analyzing</span></div>
+              </div>
+            </div>
+
+            <div class="score-metrics-grid">
+              <div class="metric-box">
+                <span class="metric-val" id="trapCountMetric">0</span>
+                <span class="metric-lbl">Predatory Traps Found</span>
+              </div>
+              <div class="metric-box">
+                <span class="metric-val" id="clauseCountMetric">0</span>
+                <span class="metric-lbl">Clauses Evaluated</span>
+              </div>
+              <div class="metric-box">
+                <span class="metric-val" id="wordCountMetric">0</span>
+                <span class="metric-lbl">Total Words</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Traps & Red Flags Matrix -->
+        <div class="card-glass">
+          <h3>⚠️ Predatory Traps & Risk Flags</h3>
+          <p style="font-size:0.9rem; color:var(--text-secondary); margin-bottom:1rem;">
+            Clauses that heavily favor the counterparty or waive statutory protections:
+          </p>
+          <div id="trapsList"></div>
+        </div>
+
+        <!-- Clause Breakdown -->
+        <div class="card-glass">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+            <h3>📄 Clause-by-Clause Plain-English Breakdown</h3>
+            <div class="clause-filter-bar">
+              <button class="clause-filter-tab active" data-category="all" onclick="DocumentAnalyzerUI.filterClauses('all')">All</button>
+              <button class="clause-filter-tab" data-category="liability" onclick="DocumentAnalyzerUI.filterClauses('liability')">Liability</button>
+              <button class="clause-filter-tab" data-category="term" onclick="DocumentAnalyzerUI.filterClauses('term')">Term & Exit</button>
+              <button class="clause-filter-tab" data-category="financial" onclick="DocumentAnalyzerUI.filterClauses('financial')">Payments</button>
+              <button class="clause-filter-tab" data-category="dispute" onclick="DocumentAnalyzerUI.filterClauses('dispute')">Disputes</button>
+              <button class="clause-filter-tab" data-category="intellectual" onclick="DocumentAnalyzerUI.filterClauses('intellectual')">IP Rights</button>
+            </div>
+          </div>
+          <div id="clausesList"></div>
+        </div>
+
+        <!-- Pre-Signing Action Checklist -->
+        <div class="card-glass">
+          <h3>✅ Pre-Signing Action Checklist</h3>
+          <p style="font-size:0.9rem; color:var(--text-secondary); margin-bottom:1rem;">
+            Complete these vital steps and amendments before signing to safeguard your legal rights:
+          </p>
+          <div id="checklistItems"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: SIDE-BY-SIDE REDLINE & COMPARATOR -->
+    <section class="app-view-section" id="compareTab" role="tabpanel" aria-labelledby="tab-compare">
+      <div class="card-glass">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+          <div>
+            <h3>Side-by-Side Contract Comparison & Redline</h3>
+            <p style="font-size:0.88rem; color:var(--text-secondary);">Compare a standard baseline contract against a revised counter-proposal to expose subtle language shifts and added traps.</p>
+          </div>
+          <div style="display:flex; gap:0.5rem;">
+            <button type="button" class="btn-secondary btn-sm" id="loadNdaCompareSampleBtn">Load Standard vs Vendor NDA Sample</button>
+            <button type="button" class="btn-primary btn-sm" id="runCompareBtn">Compare & Redline</button>
+          </div>
+        </div>
+
+        <div class="grid-2col">
+          <div>
+            <label for="compareDocA" style="font-size:0.85rem; font-weight:700; color:var(--text-secondary); display:block; margin-bottom:0.3rem;">Document A (Baseline / Standard Terms):</label>
+            <textarea id="compareDocA" class="textarea-legal" placeholder="Paste original agreement or standard template here..."></textarea>
+          </div>
+          <div>
+            <label for="compareDocB" style="font-size:0.85rem; font-weight:700; color:var(--text-secondary); display:block; margin-bottom:0.3rem;">Document B (Counter-Offer / Revised Vendor Version):</label>
+            <textarea id="compareDocB" class="textarea-legal" placeholder="Paste counter-proposal or modified agreement here..."></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div id="compareResults" class="hidden"></div>
+    </section>
+
+    <!-- TAB 3: GROUNDED AI LEGAL CHAT -->
+    <section class="app-view-section" id="chatTab" role="tabpanel" aria-labelledby="tab-chat">
+      <div class="card-glass chat-container-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; padding-bottom:0.85rem; border-bottom:1px solid var(--border-subtle);">
+          <div>
+            <h3>Interactive Document Q&A</h3>
+            <p style="font-size:0.85rem; color:var(--text-secondary);">Ask any question about your active document. Answers cite exact clauses.</p>
+          </div>
+          <span style="font-size:0.75rem; font-weight:700; background:var(--bg-inset); padding:0.25rem 0.75rem; border-radius:var(--radius-full); border:1px solid var(--border-subtle);">Grounded with Gemini 2.5</span>
+        </div>
+
+        <!-- Chat Feed -->
+        <div class="chat-feed" id="chatMessagesFeed">
+          <div class="chat-bubble-row assistant">
+            <div class="chat-avatar" style="width:36px; height:36px; border-radius:50%; background:var(--bg-secondary); display:flex; align-items:center; justify-content:center; font-size:1.1rem; border:1px solid var(--border-subtle);">⚖️</div>
+            <div class="chat-bubble assistant">
+              <p>Hello! I am your <strong>LexiClarity Legal Navigator</strong>. I've analyzed your document. What would you like to clarify or explore?</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Prompts -->
+        <div class="chat-chips-row">
+          <button class="chat-chip">What is the notice requirement to cancel?</button>
+          <button class="chat-chip">What happens if I miss a payment?</button>
+          <button class="chat-chip">Who owns intellectual property created?</button>
+          <button class="chat-chip">Am I forced into private arbitration?</button>
+        </div>
+
+        <!-- Input Row -->
+        <div class="chat-input-row">
+          <input type="text" id="chatInput" class="form-input" placeholder="Type a question about your contract (e.g., 'What is my deposit refund timeline?')...">
+          <button type="button" class="btn-primary" id="chatSendBtn">Send</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: WHAT-IF SCENARIO SIMULATOR -->
+    <section class="app-view-section" id="simulatorTab" role="tabpanel" aria-labelledby="tab-simulator">
+      <div class="card-glass">
+        <h3>What-If Legal Outcome Simulator</h3>
+        <p style="font-size:0.88rem; color:var(--text-secondary); margin-bottom:1.5rem;">
+          Test hypothetical situations against your document to forecast legal exposure, financial penalties, and required notice steps.
+        </p>
+
+        <!-- Preset Scenario Cards -->
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:1rem; margin-bottom:1.5rem;">
+          <div class="card-glass scenario-preset-card" data-prompt="What happens if I need to terminate this agreement 3 months early due to relocation or budget cuts?" style="cursor:pointer; margin-bottom:0;">
+            <h4>🏃‍♂️ Early Exit / Termination</h4>
+            <p style="font-size:0.82rem; color:var(--text-secondary); margin-top:0.3rem;">Simulates breaking the lease or contract 3 months prior to expiration.</p>
+          </div>
+          <div class="card-glass scenario-preset-card" data-prompt="What happens if a payment is delayed by 15 days? Will I incur penalties or immediate default?" style="cursor:pointer; margin-bottom:0;">
+            <h4>💳 Delayed Payment</h4>
+            <p style="font-size:0.82rem; color:var(--text-secondary); margin-top:0.3rem;">Tests late fee schedules, grace periods, and cure timelines.</p>
+          </div>
+          <div class="card-glass scenario-preset-card" data-prompt="What are my legal remedies if the landlord or provider fails to repair essential infrastructure for 14 days?" style="cursor:pointer; margin-bottom:0;">
+            <h4>🛠️ Broken Amenities / Outage</h4>
+            <p style="font-size:0.82rem; color:var(--text-secondary); margin-top:0.3rem;">Evaluates habitability remedies and service failure clauses.</p>
+          </div>
+          <div class="card-glass scenario-preset-card" data-prompt="Does this contract restrict me from developing a personal software project or consulting on weekends?" style="cursor:pointer; margin-bottom:0;">
+            <h4>💻 Side Projects & IP Rights</h4>
+            <p style="font-size:0.82rem; color:var(--text-secondary); margin-top:0.3rem;">Tests non-compete overreaches and work-for-hire assignment limits.</p>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:0.5rem;">
+          <input type="text" id="scenarioInput" class="form-input" placeholder="Or describe your custom hypothetical scenario (e.g. 'What if I sublet a bedroom?')...">
+          <button type="button" class="btn-primary" id="runScenarioBtn" style="white-space:nowrap;">Simulate Scenario</button>
+        </div>
+      </div>
+
+      <div id="scenarioOutput" class="hidden"></div>
+    </section>
+
+    <!-- TAB 5: OBLIGATION TIMELINE & CALENDAR -->
+    <section class="app-view-section" id="timelineTab" role="tabpanel" aria-labelledby="tab-timeline">
+      <div class="card-glass">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; flex-wrap:wrap; gap:0.5rem;">
+          <div>
+            <h3>Contractual Timeline & Obligation Tracker</h3>
+            <p style="font-size:0.88rem; color:var(--text-secondary);">Visual milestone tracker of notice deadlines, renewal windows, and required actions.</p>
+          </div>
+          <div style="display:flex; gap:0.5rem;">
+            <button type="button" class="btn-secondary btn-sm" id="refreshTimelineBtn">🔄 Refresh Milestones</button>
+            <button type="button" class="btn-primary btn-sm" id="exportIcsBtn">📅 Download All Deadlines (.ics)</button>
+          </div>
+        </div>
+
+        <div id="timelineEventsContainer"></div>
+      </div>
+    </section>
+
+    <!-- TAB 6: ATTORNEY BRIEFING PACKET -->
+    <section class="app-view-section" id="attorneyTab" role="tabpanel" aria-labelledby="tab-attorney">
+      <div class="card-glass">
+        <h3>Attorney Consultation Packet Generator</h3>
+        <p style="font-size:0.88rem; color:var(--text-secondary); margin-bottom:1.25rem;">
+          Save hundreds in attorney fees by walking into your consultation with an itemized executive summary, flagged traps, and prepared targeted questions.
+        </p>
+
+        <div class="grid-2col" style="margin-bottom:1.25rem;">
+          <div>
+            <label style="font-size:0.85rem; color:var(--text-secondary); display:block; margin-bottom:0.3rem; font-weight:600;">Your Name / Entity:</label>
+            <input type="text" id="packetClientName" class="form-input" value="Alex Morgan" placeholder="e.g. John Doe / Apex LLC">
+          </div>
+          <div>
+            <label style="font-size:0.85rem; color:var(--text-secondary); display:block; margin-bottom:0.3rem; font-weight:600;">Document Title:</label>
+            <input type="text" id="packetDocTitle" class="form-input" value="Commercial Lease Agreement" placeholder="e.g. Vendor Agreement 2025">
+          </div>
+        </div>
+
+        <div style="margin-bottom:1.25rem;">
+          <label style="font-size:0.85rem; color:var(--text-secondary); display:block; margin-bottom:0.3rem; font-weight:600;">Primary Goal for Consultation:</label>
+          <input type="text" id="packetGoal" class="form-input" value="Narrow unilateral liability, adjust auto-renewal window, and confirm security deposit protections." placeholder="What do you want counsel to achieve?">
+        </div>
+
+        <div style="display:flex; gap:0.5rem; justify-content:flex-end;">
+          <button type="button" class="btn-secondary" id="copyPacketMdBtn">📋 Copy Markdown</button>
+          <button type="button" class="btn-secondary" id="printPacketBtn">🖨️ Print / Save PDF</button>
+          <button type="button" class="btn-primary" id="generatePacketBtn">Generate Briefing Packet</button>
+        </div>
+      </div>
+
+      <div id="packetPreviewArea" class="hidden"></div>
+    </section>
+
+    <!-- TAB 7: LEGAL DICTIONARY & GLOSSARY -->
+    <section class="app-view-section" id="dictionaryTab" role="tabpanel" aria-labelledby="tab-dictionary">
+      <div class="card-glass">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+          <div>
+            <h3>Plain-English Legal Glossary</h3>
+            <p style="font-size:0.88rem; color:var(--text-secondary);">Decodes obscure legal jargon and Latin phrases into simple terms with practical negotiation advice.</p>
+          </div>
+          <div style="width:280px;">
+            <input type="text" id="dictSearchInput" class="form-input" placeholder="Search terms (e.g., 'indemnity', 'arbitration')...">
+          </div>
+        </div>
+
+        <div class="clause-filter-bar" style="margin-bottom:1.5rem;">
+          <button class="clause-filter-tab active" onclick="LegalDictionaryUI.filterByCategory('all')">All Terms</button>
+          <button class="clause-filter-tab" onclick="LegalDictionaryUI.filterByCategory('Liability')">Liability</button>
+          <button class="clause-filter-tab" onclick="LegalDictionaryUI.filterByCategory('Dispute')">Disputes</button>
+          <button class="clause-filter-tab" onclick="LegalDictionaryUI.filterByCategory('Term')">Term & Renewal</button>
+          <button class="clause-filter-tab" onclick="LegalDictionaryUI.filterByCategory('Property')">Intellectual Property</button>
+          <button class="clause-filter-tab" onclick="LegalDictionaryUI.filterByCategory('Tenant')">Tenant Rights</button>
+        </div>
+
+        <div id="dictionaryTermsList" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(360px, 1fr)); gap:1rem;"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Sticky Audio TTS Bar (When reading) -->
+  <div class="audio-sticky-bar hidden" id="audioPlaybackBar">
+    <div style="display:flex; align-items:center; gap:0.5rem;">
+      <span class="audio-wave">🔊</span>
+      <span style="font-size:0.85rem; font-weight:700;">Reading clause aloud...</span>
+    </div>
+    <button type="button" class="btn-sm btn-subtle" id="stopAudioBtn" style="background:rgba(255,255,255,0.2); color:#fff; border:none;">⏹️ Stop</button>
+  </div>
+
+  <!-- Settings Modal -->
+  <div class="modal-overlay hidden" id="settingsModal">
+    <div class="modal-dialog">
+      <h3 style="margin-bottom:0.5rem;">⚙️ LexiClarity Settings</h3>
+      <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:1.25rem;">
+        Configure your Google Gemini API key for live LLM reasoning, or use the built-in offline legal engine.
+      </p>
+
+      <div style="margin-bottom:1.25rem;">
+        <label for="geminiApiKeyInput" style="font-size:0.85rem; font-weight:600; display:block; margin-bottom:0.3rem;">Google Gemini API Key (Optional):</label>
+        <input type="password" id="geminiApiKeyInput" class="form-input" placeholder="AIzaSy...">
+        <p style="font-size:0.75rem; color:var(--text-muted); margin-top:0.25rem;">Your API key is stored locally in your browser and never saved to a remote database.</p>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap:0.5rem;">
+        <button type="button" class="btn-secondary" id="closeSettingsBtn">Cancel</button>
+        <button type="button" class="btn-primary" id="saveSettingsBtn">Save Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Redline Counter-Proposal Modal -->
+  <div class="modal-overlay hidden" id="redlineModal">
+    <div class="modal-dialog" style="max-width:700px;">
+      <h3 style="margin-bottom:0.75rem;">🛡️ Proposed Balanced Counter-Redline</h3>
+      <div id="redlineModalContent"></div>
+    </div>
+  </div>
+
+  <!-- PII Redacted Entities Modal -->
+  <div class="modal-overlay hidden" id="piiModal">
+    <div class="modal-dialog">
+      <h3 style="margin-bottom:0.5rem;">🔒 LexiGuard Client-Side PII Scrubbing</h3>
+      <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:1rem;">
+        The following confidential entities were masked before document processing:
+      </p>
+      <div id="piiModalItemsList">
+        <p style="font-size:0.85rem; color:var(--text-secondary);">• Social Security Numbers & IDs<br>• Credit Card & Bank Accounts<br>• Phone Numbers & Email Addresses<br>• Physical Residential Street Addresses<br>• Personal Individual Names</p>
+      </div>
+      <div style="display:flex; justify-content:flex-end; margin-top:1.5rem;">
+        <button type="button" class="btn-primary" onclick="PiiClient.closePiiModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer style="text-align:center; padding:2.5rem; border-top:1px solid var(--border-subtle); font-size:0.82rem; color:var(--text-muted); background:var(--bg-secondary);">
+    <p><strong>LexiClarity AI</strong> • Sentimental Black & White Edition • Built for Google Prompt Wars</p>
+    <p style="margin-top:0.25rem;"><em>Notice: LexiClarity AI provides educational document navigation assistance and does not constitute formal legal counsel.</em></p>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="js/sampleData.js"></script>
+  <script src="js/accessibility.js"></script>
+  <script src="js/piiClient.js"></script>
+  <script src="js/analyzer.js"></script>
+  <script src="js/comparator.js"></script>
+  <script src="js/chat.js"></script>
+  <script src="js/simulator.js"></script>
+  <script src="js/timeline.js"></script>
+  <script src="js/attorneyPacket.js"></script>
+  <script src="js/dictionary.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
