@@ -88,6 +88,28 @@ class RiskAnalyzer {
   ];
 
   /**
+   * Sanitizes binary and XML artifacts if Word docx was passed as raw text
+   */
+  static cleanText(rawText) {
+    if (!rawText || typeof rawText !== 'string') return '';
+    let cleaned = rawText;
+
+    // Extract text from <w:t> tags if raw docx XML was uploaded
+    if (cleaned.includes('[Content_Types].xml') || cleaned.includes('<w:t') || cleaned.includes('word/document.xml')) {
+      const matches = cleaned.match(/<w:t(?:\s+[^>]*)?>([\s\S]*?)<\/w:t>/gi);
+      if (matches && matches.length > 0) {
+        cleaned = matches.map(tag => tag.replace(/<[^>]+>/g, '')).join(' ');
+      }
+    }
+
+    // Remove PK binary headers & null control characters
+    cleaned = cleaned.replace(/^PK[\s\S]*?\[Content_Types\]\.xml[\s\S]*?(?=[A-Z0-9]{3,})/i, '');
+    cleaned = cleaned.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, ' ');
+    cleaned = cleaned.replace(/[ \t]{2,}/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
+    return cleaned;
+  }
+
+  /**
    * Performs deep analysis of document text
    */
   static analyze(documentText, options = {}) {
@@ -104,7 +126,7 @@ class RiskAnalyzer {
       };
     }
 
-    const text = documentText.trim();
+    const text = this.cleanText(documentText);
     const clauses = this.segmentClauses(text);
     const traps = this.detectTraps(text, clauses);
     const obligations = this.extractObligations(clauses);

@@ -111,20 +111,36 @@ class LexiClarityApp {
     }
   }
 
-  readFile(file) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const content = e.target.result;
+  async readFile(file) {
+    try {
+      let content = '';
+      if (window.DocumentParser) {
+        content = await window.DocumentParser.parseFile(file);
+      } else {
+        content = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (e) => resolve(e.target.result);
+          reader.readAsText(file);
+        });
+      }
+
+      if (!content || content.length < 10) {
+        alert('Could not extract text from the file. Please ensure it is a valid document.');
+        return;
+      }
+
       const textarea = document.getElementById('documentInput');
       if (textarea) {
         textarea.value = content;
         this.activeDocument = content;
         this.updatePiiStatus(content);
-        this.showToast(`Loaded file: ${file.name}`);
+        this.showToast(`Extracted clean text from: ${file.name}`);
         this.analyzeCurrentDocument();
       }
-    };
-    reader.readAsText(file);
+    } catch (err) {
+      console.error('File parsing error:', err);
+      alert(`Failed to parse file: ${err.message}`);
+    }
   }
 
   bindSampleSelector() {
