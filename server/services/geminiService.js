@@ -13,7 +13,7 @@ class GeminiService {
   /**
    * Initializes Gemini model client with provided key or env key
    */
-  static getModel(apiKey, modelName = 'gemini-1.5-flash') {
+  static getModel(apiKey, modelName = 'gemini-3.6-flash') {
     const key = (apiKey && apiKey.trim()) || process.env.GEMINI_API_KEY;
     if (!key) return null;
     try {
@@ -38,7 +38,7 @@ class GeminiService {
 
     if (key) {
       // Try modern Gemini model names in order of availability
-      const modelCandidates = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-1.5-pro', 'gemini-pro'];
+      const modelCandidates = ['gemini-3.6-flash', 'gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-pro'];
       for (const modelName of modelCandidates) {
         try {
           const model = this.getModel(key, modelName);
@@ -89,7 +89,7 @@ INSTRUCTIONS:
   static async explainClause(clauseText, language = 'English', apiKey = null) {
     const key = (apiKey && apiKey.trim()) || process.env.GEMINI_API_KEY;
     if (key) {
-      const modelCandidates = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'];
+      const modelCandidates = ['gemini-3.6-flash', 'gemini-2.5-flash', 'gemini-1.5-flash'];
       for (const modelName of modelCandidates) {
         try {
           const model = this.getModel(key, modelName);
@@ -133,7 +133,7 @@ ${clauseText}
   static async suggestRedline(clauseText, objective, apiKey = null) {
     const key = (apiKey && apiKey.trim()) || process.env.GEMINI_API_KEY;
     if (key) {
-      const modelCandidates = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'];
+      const modelCandidates = ['gemini-3.6-flash', 'gemini-2.5-flash', 'gemini-1.5-flash'];
       for (const modelName of modelCandidates) {
         try {
           const model = this.getModel(key, modelName);
