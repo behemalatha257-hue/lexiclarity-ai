@@ -113,10 +113,13 @@ class ContractComparatorUI {
       });
       const json = await res.json();
       if (json.success) {
-        this.currentComparison = json.data;
+        const data = json.data;
+        // Filter out UNCHANGED — only show meaningful diffs
+        data.changes = (data.changes || []).filter(c => c.type !== 'UNCHANGED');
+        this.currentComparison = data;
         // Also enrich with client-side word diff
-        this.enrichWithWordDiff(json.data, docAText, docBText);
-        this.renderResults(json.data);
+        this.enrichWithWordDiff(data, docAText, docBText);
+        this.renderResults(data);
       } else {
         resultsArea.innerHTML = `<div class="compare-error-card">⚠️ Comparison error: ${json.error}</div>`;
       }
@@ -344,7 +347,10 @@ class ContractComparatorUI {
         <p>${data.changes.length} clause change${data.changes.length !== 1 ? 's' : ''} detected — each assessed for risk impact</p>
       </div>
       <div class="cmp-changes-list">
-        ${data.changes.map((change, idx) => this.renderChangeCard(change, idx)).join('')}
+        ${data.changes.length === 0
+          ? '<div class="compare-error-card" style="text-align:center;">✅ No significant clause differences found — the two documents are nearly identical.</div>'
+          : data.changes.map((change, idx) => this.renderChangeCard(change, idx)).join('')
+        }
       </div>
     `;
 
@@ -364,14 +370,17 @@ class ContractComparatorUI {
   }
 
   static renderChangeCard(change, idx) {
-    const typeClass = change.type.toLowerCase().replace(/\s+/g, '-');
-    const riskClass = (change.riskShift || '').toLowerCase().replace(/\s+/g, '-');
+    // Normalize type to lowercase for CSS classes
+    const typeRaw = (change.type || 'modified').toLowerCase();
+    const typeClass = typeRaw.replace(/[\s_]+/g, '-');
+    const riskClass = (change.riskShift || 'neutral').toLowerCase().replace(/[\s_]+/g, '-');
     const typeIcon = {
-      'modified': '✏️',
-      'added': '➕',
-      'removed': '➖',
-      'critical': '🚨'
-    }[change.type.toLowerCase()] || '⚙️';
+      'modified': '\u270F\uFE0F',
+      'added': '\u2795',
+      'removed': '\u2796',
+      'critical': '\uD83D\uDEA8',
+      'critical-hazard': '\uD83D\uDEA8'
+    }[typeClass] || '\u2699\uFE0F';
 
     return `
       <div class="cmp-change-card type-${typeClass}" id="change-${idx}">

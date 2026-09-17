@@ -51,7 +51,19 @@ class LexiClarityApp {
 
     // Auto refresh dependent tabs
     if (tabId === 'timelineTab' && window.ObligationTimelineUI) {
-      window.ObligationTimelineUI.renderFromActiveDoc();
+      // If analysis exists, render it. Otherwise run analysis first then render.
+      if (window.DocumentAnalyzerUI && window.DocumentAnalyzerUI.currentAnalysis) {
+        window.ObligationTimelineUI.renderFromActiveDoc();
+      } else {
+        const text = this.getActiveDocumentText();
+        if (text) {
+          this.analyzeCurrentDocument().then(() => {
+            window.ObligationTimelineUI.renderFromActiveDoc();
+          }).catch(() => window.ObligationTimelineUI.renderFromActiveDoc());
+        } else {
+          window.ObligationTimelineUI.renderFromActiveDoc();
+        }
+      }
     }
     if (tabId === 'compareTab' && window.ContractComparatorUI) {
       const docA = document.getElementById('compareDocA');
@@ -148,6 +160,7 @@ class LexiClarityApp {
     if (selector) {
       selector.addEventListener('change', (e) => {
         const key = e.target.value;
+        if (!key) return; // ignore placeholder selection
         if (key && window.SAMPLE_DOCUMENTS && window.SAMPLE_DOCUMENTS[key]) {
           const doc = window.SAMPLE_DOCUMENTS[key];
           const textarea = document.getElementById('documentInput');
@@ -155,7 +168,9 @@ class LexiClarityApp {
             textarea.value = doc.text;
             this.activeDocument = doc.text;
             this.updatePiiStatus(doc.text);
-            this.showToast(`Loaded sample: ${doc.title}`);
+            this.showToast(`\u2705 Loaded: ${doc.title}`);
+            // Reset selector so the same option can be re-selected next time
+            setTimeout(() => { selector.value = ''; }, 50);
             this.analyzeCurrentDocument();
           }
         }
@@ -164,6 +179,20 @@ class LexiClarityApp {
   }
 
   loadInitialSample() {
+    // Reset selector to placeholder so every option always fires `change`
+    const selector = document.getElementById('sampleDocSelect');
+    if (selector) {
+      // Insert placeholder option if not present
+      if (!selector.querySelector('option[value=""]')) {
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = '— Select a sample contract —';
+        placeholder.disabled = true;
+        selector.insertBefore(placeholder, selector.firstChild);
+      }
+      selector.value = ''; // Always reset so re-selection fires change
+    }
+
     if (window.SAMPLE_DOCUMENTS && window.SAMPLE_DOCUMENTS.lease) {
       const doc = window.SAMPLE_DOCUMENTS.lease;
       const textarea = document.getElementById('documentInput');
@@ -172,7 +201,7 @@ class LexiClarityApp {
         this.activeDocument = doc.text;
         this.updatePiiStatus(doc.text);
         // Auto analyze initial sample for instant wow-factor
-        setTimeout(() => this.analyzeCurrentDocument(), 100);
+        setTimeout(() => this.analyzeCurrentDocument(), 300);
       }
     }
   }
@@ -186,10 +215,11 @@ class LexiClarityApp {
 
   async analyzeCurrentDocument() {
     const textarea = document.getElementById('documentInput');
-    const text = textarea ? textarea.value.trim() : (this.activeDocument || '');
+    // Always prefer live textarea content; fall back to cached activeDocument
+    const text = (textarea && textarea.value.trim()) ? textarea.value.trim() : (this.activeDocument || '');
 
-    if (!text) {
-      alert('Please paste or upload a legal document to analyze.');
+    if (!text || text.length < 30) {
+      alert('Please paste or upload a legal document to analyze (minimum 30 characters).');
       return;
     }
 
@@ -197,7 +227,7 @@ class LexiClarityApp {
     const analyzeBtn = document.getElementById('runAnalysisBtn');
     if (analyzeBtn) {
       analyzeBtn.disabled = true;
-      analyzeBtn.innerHTML = `<span>Analyzing Clauses...</span>`;
+      analyzeBtn.innerHTML = `<span>\u23F3 Analyzing Clauses...</span>`;
     }
 
     try {

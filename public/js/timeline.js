@@ -22,7 +22,24 @@ class ObligationTimelineUI {
     const container = document.getElementById('timelineEventsContainer');
     if (!container) return;
 
+    // If no analysis yet, attempt to analyze first
     if (!analysis || !analysis.obligations || analysis.obligations.length === 0) {
+      const docText = window.app ? window.app.getActiveDocumentText() : '';
+      if (docText && docText.length > 30 && !analysis) {
+        container.innerHTML = `<div class="compare-loading-state"><div class="compare-loading-ring"></div><div class="compare-loading-text"><strong>Extracting obligations from document...</strong></div></div>`;
+        window.app.analyzeCurrentDocument().then(() => {
+          const freshAnalysis = window.DocumentAnalyzerUI.currentAnalysis;
+          if (freshAnalysis && freshAnalysis.obligations && freshAnalysis.obligations.length > 0) {
+            this.renderFromActiveDoc();
+          } else {
+            container.innerHTML = `<div class="empty-state-card"><p>No recurring deadlines or notice obligations detected in this document.</p></div>`;
+          }
+        }).catch(() => {
+          container.innerHTML = `<div class="empty-state-card"><p>No active obligations or notice deadlines found. Please analyze a document in the Analyzer tab first.</p></div>`;
+        });
+        return;
+      }
+
       container.innerHTML = `
         <div class="empty-state-card">
           <p>No active obligations or notice deadlines found. Please analyze a document in the Analyzer tab first.</p>
@@ -30,6 +47,7 @@ class ObligationTimelineUI {
       `;
       return;
     }
+
 
     const obligations = analysis.obligations;
 
