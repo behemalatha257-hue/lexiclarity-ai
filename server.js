@@ -67,11 +67,11 @@ app.post('/api/sanitize', (req, res) => {
 /**
  * 2. ClauseRadar Risk & Document Analyzer
  */
-app.post('/api/analyze', (req, res) => {
+app.post('/api/analyze', async (req, res) => {
   try {
-    const { text, autoSanitize = false } = req.body;
-    if (!text) {
-      return res.status(400).json({ error: 'Document text is required' });
+    const { text, autoSanitize = false, apiKey } = req.body;
+    if (!text || typeof text !== 'string' || text.trim().length < 15) {
+      return res.status(400).json({ error: 'Valid document text is required for analysis (minimum 15 characters)' });
     }
 
     let processedText = text;
@@ -82,7 +82,16 @@ app.post('/api/analyze', (req, res) => {
       processedText = piiReport.sanitizedText;
     }
 
-    const analysis = RiskAnalyzer.analyze(processedText);
+    // 1. Run deterministic baseline analysis
+    let analysis = RiskAnalyzer.analyze(processedText);
+
+    // 2. If Gemini API is configured, enrich with AI reasoning
+    try {
+      analysis = await GeminiService.analyzeDocumentWithAI(processedText, analysis, apiKey);
+    } catch (aiErr) {
+      console.warn('Gemini analysis enrichment skipped:', aiErr.message);
+    }
+
     return res.json({
       success: true,
       data: {

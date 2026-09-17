@@ -185,6 +185,15 @@
           </div>
         </div>
 
+        <!-- AI Executive Summary Banner (if available) -->
+        <div id="aiSummaryBanner" class="card-glass hidden" style="border-left: 4px solid var(--text-primary); background: var(--bg-card); margin-bottom: 1.5rem;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem; flex-wrap:wrap; gap:0.5rem;">
+            <h4 style="margin:0; font-size:0.95rem;">🤖 AI Executive Risk Evaluation</h4>
+            <span id="aiSummaryProvider" class="badge" style="font-size:0.75rem;">Google Gemini</span>
+          </div>
+          <p id="aiSummaryText" style="font-size:0.9rem; color:var(--text-secondary); margin:0; line-height:1.5;"></p>
+        </div>
+
         <!-- Traps & Red Flags Matrix -->
         <div class="card-glass">
           <h3>⚠️ Predatory Traps & Risk Flags</h3>
@@ -502,6 +511,12 @@
 
   <!-- Scripts -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    if (typeof pdfjsLib !== 'undefined') {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+  </script>
   <script src="js/docParser.js"></script>
   <script src="js/sampleData.js"></script>
   <script src="js/accessibility.js"></script>

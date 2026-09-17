@@ -336,6 +336,134 @@ Provide:
     });
     return citations.slice(0, 3);
   }
+
+  /**
+   * AI-powered deep document risk analysis using Google Gemini
+   */
+  static async analyzeDocumentWithAI(documentText, baselineAnalysis, apiKey = null) {
+    const key = (apiKey && apiKey.trim()) || process.env.GEMINI_API_KEY;
+    if (!key || !documentText || documentText.length < 50) {
+      return baselineAnalysis;
+    }
+
+    const modelCandidates = ['gemini-3.6-flash', 'gemini-2.5-flash', 'gemini-1.5-flash'];
+    for (const modelName of modelCandidates) {
+      try {
+        const model = this.getModel(key, modelName);
+        if (model) {
+          const prompt = `You are LexiClarity AI, an expert contract auditor and legal safety evaluator.
+Analyze this legal document excerpt for traps, hidden risks, unilateral terms, and overall fairness.
+
+DOCUMENT (first 10,000 characters):
+"""
+${documentText.slice(0, 10000)}
+"""
+
+Evaluate this document objectively:
+- Standard, balanced mutual contracts score 82 to 92.
+- Mildly one-sided or restrictive agreements score 65 to 80.
+- Heavily one-sided, aggressive, or unfair agreements score 40 to 60.
+- Predatory, draconian, or high-liability agreements score 15 to 39.
+
+Respond strictly with a JSON object (no markdown code blocks, no backticks, just raw JSON):
+{
+  "score": 75,
+  "grade": "C",
+  "riskLevel": "Moderate Risk",
+  "aiTraps": [
+    {
+      "title": "Short trap title",
+      "category": "Liability & Damages",
+      "severity": "HIGH",
+      "scorePenalty": 15,
+      "snippet": "Exact phrase from document",
+      "explanation": "Plain English explanation",
+      "recommendation": "Practical counter-proposal"
+    }
+  ],
+  "executiveSummary": "2-sentence plain-English summary of overall fairness and key flags"
+}`;
+
+          const result = await model.generateContent(prompt);
+          const raw = result.response.text().trim();
+          const match = raw.match(/\{[\s\S]*\}/);
+          if (match) {
+            const aiData = JSON.parse(match[0]);
+            return this.mergeAiAnalysis(baselineAnalysis, aiData, modelName);
+          }
+        }
+      } catch (e) {
+        console.warn(`Gemini analysis enrichment skipped on ${modelName}:`, e.message);
+      }
+    }
+
+    return baselineAnalysis;
+  }
+
+  static mergeAiAnalysis(baseline, aiData, modelName) {
+    if (!aiData || typeof aiData.score !== 'number') return baseline;
+
+    const mergedTraps = [...(baseline.traps || [])];
+    const existingTitles = new Set(mergedTraps.map(t => (t.title || '').toLowerCase()));
+
+    if (Array.isArray(aiData.aiTraps)) {
+      aiData.aiTraps.forEach((trap, i) => {
+        const titleLower = (trap.title || '').toLowerCase();
+        const snippetLower = (trap.snippet || '').toLowerCase();
+        const isDuplicate = Array.from(existingTitles).some(existing => 
+          existing.includes(titleLower) || titleLower.includes(existing) || (trap.snippet && baseline.traps.some(bt => bt.snippet && bt.snippet.toLowerCase().includes(snippetLower.slice(0, 30))))
+        );
+
+        if (!isDuplicate) {
+          existingTitles.add(titleLower);
+          mergedTraps.push({
+            ruleId: `ai_trap_${i + 1}`,
+            title: trap.title || 'Identified Contractual Risk',
+            category: trap.category || 'Contract Terms',
+            severity: trap.severity || 'HIGH',
+            scorePenalty: trap.scorePenalty || 15,
+            snippet: trap.snippet || 'Referenced in contract text',
+            clauseId: null,
+            clauseTitle: 'AI Identified Provision',
+            explanation: trap.explanation || 'Identified as potentially one-sided or disadvantageous.',
+            recommendation: trap.recommendation || 'Consult with legal counsel or negotiate mutual terms.'
+          });
+        }
+      });
+    }
+
+    // Use the lower (more cautious) score between baseline and AI
+    const finalScore = (baseline.traps && baseline.traps.length > 0)
+      ? Math.min(baseline.score, Math.round(aiData.score))
+      : Math.round(aiData.score);
+
+    let finalGrade = 'A';
+    let finalRiskLevel = 'Low Risk';
+    if (finalScore < 40) {
+      finalGrade = 'F';
+      finalRiskLevel = 'Extreme Risk';
+    } else if (finalScore < 60) {
+      finalGrade = 'D';
+      finalRiskLevel = 'High Risk';
+    } else if (finalScore < 75) {
+      finalGrade = 'C';
+      finalRiskLevel = 'Moderate Risk';
+    } else if (finalScore < 90) {
+      finalGrade = 'B';
+      finalRiskLevel = 'Fair / Minor Notes';
+    }
+
+    return {
+      ...baseline,
+      score: finalScore,
+      grade: finalGrade,
+      riskLevel: finalRiskLevel,
+      trapsFoundCount: mergedTraps.length,
+      traps: mergedTraps,
+      aiSummary: aiData.executiveSummary || null,
+      aiProvider: `Google Gemini (${modelName})`
+    };
+  }
 }
 
 module.exports = GeminiService;

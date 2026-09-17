@@ -62,6 +62,22 @@ class DocumentAnalyzerUI {
       else if (data.score >= 60) circle.style.stroke = 'var(--color-warning)';
       else circle.style.stroke = 'var(--color-danger)';
     }
+
+    // Render AI Executive Summary if provided
+    const aiBanner = document.getElementById('aiSummaryBanner');
+    const aiText = document.getElementById('aiSummaryText');
+    const aiProvider = document.getElementById('aiSummaryProvider');
+    if (aiBanner && aiText) {
+      if (data.aiSummary) {
+        aiBanner.classList.remove('hidden');
+        aiText.textContent = data.aiSummary;
+        if (aiProvider && data.aiProvider) {
+          aiProvider.textContent = data.aiProvider;
+        }
+      } else {
+        aiBanner.classList.add('hidden');
+      }
+    }
   }
 
   static renderTrapsMatrix(traps) {
