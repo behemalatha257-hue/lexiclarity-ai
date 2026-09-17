@@ -18,39 +18,78 @@ class ObligationTimelineUI {
   }
 
   static renderFromActiveDoc() {
-    const analysis = window.DocumentAnalyzerUI.currentAnalysis;
+    const analysis = window.DocumentAnalyzerUI ? window.DocumentAnalyzerUI.currentAnalysis : null;
     const container = document.getElementById('timelineEventsContainer');
     if (!container) return;
 
-    // If no analysis yet, attempt to analyze first
-    if (!analysis || !analysis.obligations || analysis.obligations.length === 0) {
-      const docText = window.app ? window.app.getActiveDocumentText() : '';
-      if (docText && docText.length > 30 && !analysis) {
-        container.innerHTML = `<div class="compare-loading-state"><div class="compare-loading-ring"></div><div class="compare-loading-text"><strong>Extracting obligations from document...</strong></div></div>`;
-        window.app.analyzeCurrentDocument().then(() => {
-          const freshAnalysis = window.DocumentAnalyzerUI.currentAnalysis;
-          if (freshAnalysis && freshAnalysis.obligations && freshAnalysis.obligations.length > 0) {
-            this.renderFromActiveDoc();
-          } else {
-            container.innerHTML = `<div class="empty-state-card"><p>No recurring deadlines or notice obligations detected in this document.</p></div>`;
-          }
-        }).catch(() => {
-          container.innerHTML = `<div class="empty-state-card"><p>No active obligations or notice deadlines found. Please analyze a document in the Analyzer tab first.</p></div>`;
-        });
-        return;
-      }
-
-      container.innerHTML = `
-        <div class="empty-state-card">
-          <p>No active obligations or notice deadlines found. Please analyze a document in the Analyzer tab first.</p>
-        </div>
-      `;
+    // 1. If we already have obligations, render them immediately
+    if (analysis && analysis.obligations && analysis.obligations.length > 0) {
+      this.renderTrack(analysis.obligations, container);
       return;
     }
 
+    // 2. If active document text exists, auto-trigger analysis
+    const docText = window.app ? window.app.getActiveDocumentText() : '';
+    if (docText && docText.length > 20) {
+      container.innerHTML = `
+        <div class="compare-loading-state">
+          <div class="compare-loading-ring"></div>
+          <div class="compare-loading-text">
+            <strong>Extracting legal milestones & notice deadlines...</strong>
+            <span>Analyzing clauses for payment dates, renewal windows, and notice requirements</span>
+          </div>
+        </div>`;
 
-    const obligations = analysis.obligations;
+      window.app.analyzeCurrentDocument().then(() => {
+        const freshAnalysis = window.DocumentAnalyzerUI ? window.DocumentAnalyzerUI.currentAnalysis : null;
+        if (freshAnalysis && freshAnalysis.obligations && freshAnalysis.obligations.length > 0) {
+          this.renderTrack(freshAnalysis.obligations, container);
+        } else {
+          container.innerHTML = `
+            <div class="empty-state-card" style="text-align:center; padding:2rem;">
+              <p>No active obligations or notice deadlines found in this document text.</p>
+              <div style="margin-top:1rem;">
+                <button type="button" class="btn btn-primary btn-sm" onclick="ObligationTimelineUI.loadAndAnalyzeSample()">
+                  📄 Load Sample Contract With Deadlines
+                </button>
+              </div>
+            </div>`;
+        }
+      }).catch(err => {
+        console.error('Timeline extraction error:', err);
+        container.innerHTML = `
+          <div class="empty-state-card" style="text-align:center; padding:2rem;">
+            <p>No active obligations or notice deadlines found. Please analyze a document in the Analyzer tab first.</p>
+            <div style="margin-top:1rem;">
+              <button type="button" class="btn btn-primary btn-sm" onclick="ObligationTimelineUI.loadAndAnalyzeSample()">
+                📄 Load Sample Contract With Deadlines
+              </button>
+            </div>
+          </div>`;
+      });
+      return;
+    }
 
+    // 3. No document text loaded at all
+    container.innerHTML = `
+      <div class="empty-state-card" style="text-align:center; padding:2rem;">
+        <p>No document loaded yet. Please load or paste a contract to extract deadlines and milestones.</p>
+        <div style="margin-top:1rem;">
+          <button type="button" class="btn btn-primary btn-sm" onclick="ObligationTimelineUI.loadAndAnalyzeSample()">
+            📄 Load Sample Contract With Deadlines
+          </button>
+        </div>
+      </div>`;
+  }
+
+  static loadAndAnalyzeSample() {
+    if (window.app) {
+      window.app.loadInitialSample();
+      setTimeout(() => this.renderFromActiveDoc(), 500);
+    }
+  }
+
+  static renderTrack(obligations, container) {
     container.innerHTML = `
       <div class="timeline-track">
         ${obligations.map((obl, idx) => `
@@ -78,10 +117,29 @@ class ObligationTimelineUI {
     `;
   }
 
-  static exportCalendar() {
-    const analysis = window.DocumentAnalyzerUI.currentAnalysis;
+  static async exportCalendar() {
+    let analysis = window.DocumentAnalyzerUI ? window.DocumentAnalyzerUI.currentAnalysis : null;
+
+    // If no obligations in cache yet, try to auto-analyze active document text
     if (!analysis || !analysis.obligations || analysis.obligations.length === 0) {
-      alert('No obligations found to export.');
+      const docText = window.app ? window.app.getActiveDocumentText() : '';
+      if (docText && docText.length > 20) {
+        if (window.app) window.app.showToast('⏳ Extracting deadlines from document before export...');
+        try {
+          await window.app.analyzeCurrentDocument();
+          analysis = window.DocumentAnalyzerUI ? window.DocumentAnalyzerUI.currentAnalysis : null;
+        } catch (err) {
+          console.warn('Auto analysis for export failed:', err);
+        }
+      }
+    }
+
+    if (!analysis || !analysis.obligations || analysis.obligations.length === 0) {
+      if (window.app) {
+        window.app.showToast('⚠️ Please load or analyze a document first to export its calendar deadlines.');
+      } else {
+        alert('Please load or analyze a document first to export its calendar deadlines.');
+      }
       return;
     }
 
@@ -116,7 +174,9 @@ class ObligationTimelineUI {
     link.click();
     document.body.removeChild(link);
 
-    window.app.showToast('Downloaded Legal Obligation Calendar (.ics)!');
+    if (window.app) {
+      window.app.showToast(`✅ Downloaded Legal Obligation Calendar with ${analysis.obligations.length} deadlines!`);
+    }
   }
 
   static downloadSingleReminder(type, desc) {
@@ -149,7 +209,9 @@ class ObligationTimelineUI {
     link.click();
     document.body.removeChild(link);
 
-    window.app.showToast(`Downloaded reminder for ${unescapedType}!`);
+    if (window.app) {
+      window.app.showToast(`✅ Downloaded reminder for ${unescapedType}!`);
+    }
   }
 }
 

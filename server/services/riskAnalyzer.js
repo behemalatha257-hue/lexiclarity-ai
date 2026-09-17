@@ -446,32 +446,68 @@ class RiskAnalyzer {
       const text = clause.originalText;
       const lower = text.toLowerCase();
 
-      // Check for notice periods (e.g. 60 days prior to expiration, 30 days written notice)
-      const noticeMatch = text.match(/(\d{1,3})\s*(?:business\s*)?days(?:\s*(?:written\s*)?notice|\s*prior\s*to|\s*in\s*advance)/i);
+      // 1. Notice Deadlines & Advance Cancellation Windows
+      const noticeMatch = text.match(/(?:at\s+least\s+)?(\d{1,3})\s*(?:business\s*|calendar\s*)?(days?|hours?)(?:[\s\S]{0,50}?(?:written\s*)?notice|\s*prior\s*to|\s*in\s*advance|\s*before\s*expiration)/i);
       if (noticeMatch) {
         obligations.push({
           type: 'Notice Deadline',
           timeframe: `${noticeMatch[1]} Days`,
-          description: `Deliver written notice before exercising rights under "${clause.title}".`,
+          description: `Deliver advance written notice stipulated in "${clause.title}".`,
           clauseId: clause.id,
-          party: lower.includes('tenant') || lower.includes('contractor') ? 'You' : 'Mutual / Counterparty'
+          party: lower.includes('tenant') || lower.includes('contractor') || lower.includes('receiving') ? 'You' : 'Mutual / Counterparty'
         });
       }
 
-      // Check for payment terms (e.g. due on or before the 1st, payable within 30 days, net-60)
-      const payMatch = text.match(/(?:due\s+on\s+or\s+before|payable\s+within|net[- ]?)\s*(?:the\s+)?(\d{1,2}(?:st|nd|rd|th)?|\d{1,2}\s*days)/i);
+      // 2. Payment Terms & Scheduled Compensation
+      const payMatch = text.match(/(?:due\s+on\s+or\s+before|payable\s+within|net[- ]?|monthly\s+rent\s+of|hourly\s+rate\s+of)\s*(?:the\s+)?(\$[\d,]+(?:\.\d{2})?|\d{1,2}(?:st|nd|rd|th)?|\d{1,3}\s*days?)/i);
       if (payMatch) {
         obligations.push({
           type: 'Payment Schedule',
-          timeframe: payMatch[1],
+          timeframe: payMatch[1].includes('days') || payMatch[1].includes('Days') ? payMatch[1] : `${payMatch[1]} Monthly`,
           description: `Submit scheduled payment as stipulated in "${clause.title}".`,
+          clauseId: clause.id,
+          party: lower.includes('tenant') || lower.includes('contractor agrees') ? 'You' : 'Scheduled'
+        });
+      }
+
+      // 3. Agreement Term Duration & Expiration Milestones
+      const termMatch = text.match(/(?:remain\s+in\s+effect\s+for\s+(?:a\s+period\s+of\s+)?|term\s+of\s+this\s+lease\s+shall\s+commence[\s\S]{0,50}?end\s+on\s+)([^,\.\n]{3,40})/i);
+      if (termMatch) {
+        obligations.push({
+          type: 'Contract Term & Expiration',
+          timeframe: termMatch[1].trim(),
+          description: `Active contract duration and renewal milestone under "${clause.title}".`,
+          clauseId: clause.id,
+          party: 'All Parties'
+        });
+      }
+
+      // 4. Confidentiality & Ongoing Non-Disclosure Duty
+      if (lower.includes('confidential') && (lower.includes('protect') || lower.includes('duty of care') || lower.includes('survive'))) {
+        const survivalMatch = text.match(/(?:survive\s+in\s+perpetuity|survive\s+termination|period\s+of\s+([^,\.\n]{3,25}))/i);
+        obligations.push({
+          type: 'Confidentiality Duty of Care',
+          timeframe: survivalMatch ? survivalMatch[0] : 'Ongoing Duty',
+          description: `Maintain secrecy and protective duty of care for proprietary disclosures under "${clause.title}".`,
+          clauseId: clause.id,
+          party: lower.includes('receiving party strictly') ? 'You (Receiving Party)' : 'Mutual'
+        });
+      }
+
+      // 5. Restrictive Covenants / Non-Solicitation Duration
+      const solicitMatch = text.match(/(?:period\s+of\s+(\d{1,2}\s*(?:months?|years?))|for\s+a\s+period\s+of\s+(\d{1,2}\s*(?:months?|years?)))[\s\S]{0,60}?(?:solicit|do\s+business|client)/i);
+      if (solicitMatch) {
+        obligations.push({
+          type: 'Restrictive Covenant / Non-Solicit',
+          timeframe: solicitMatch[1] || solicitMatch[2] || 'Post-Termination',
+          description: `Restricted from soliciting clients, employees, or vendors as defined in "${clause.title}".`,
           clauseId: clause.id,
           party: 'You'
         });
       }
 
-      // Check for maintenance or repairs duties
-      if (lower.includes('responsible for') && (lower.includes('maintenance') || lower.includes('repairs') || lower.includes('deliverables'))) {
+      // 6. Operational Responsibilities & Deliverables
+      if (lower.includes('responsible for') && (lower.includes('maintenance') || lower.includes('repairs') || lower.includes('deliverables') || lower.includes('appliance'))) {
         obligations.push({
           type: 'Operational Responsibility',
           timeframe: 'Ongoing',
@@ -481,8 +517,8 @@ class RiskAnalyzer {
         });
       }
 
-      // Check for confidentiality / return of materials
-      if (lower.includes('return') && (lower.includes('confidential') || lower.includes('property'))) {
+      // 7. Asset Return & Proprietary Materials
+      if (lower.includes('return') && (lower.includes('confidential') || lower.includes('property') || lower.includes('materials'))) {
         obligations.push({
           type: 'Asset Return / Compliance',
           timeframe: 'Upon Termination',
