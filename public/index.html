@@ -224,25 +224,62 @@
     <!-- TAB 2: SIDE-BY-SIDE REDLINE & COMPARATOR -->
     <section class="app-view-section" id="compareTab" role="tabpanel" aria-labelledby="tab-compare">
       <div class="card-glass">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+        <!-- Header Row -->
+        <div class="cmp-topbar">
           <div>
-            <h3>Side-by-Side Contract Comparison & Redline</h3>
-            <p style="font-size:0.88rem; color:var(--text-secondary);">Compare a standard baseline contract against a revised counter-proposal to expose subtle language shifts and added traps.</p>
+            <h3>Side-by-Side Contract Comparison &amp; Redline</h3>
+            <p style="font-size:0.88rem; color:var(--text-secondary); margin-top:0.25rem;">
+              Compare a standard baseline contract against a revised counter-proposal to expose subtle language shifts and added traps.
+            </p>
           </div>
-          <div style="display:flex; gap:0.5rem;">
-            <button type="button" class="btn-secondary btn-sm" id="loadNdaCompareSampleBtn">Load Standard vs Vendor NDA Sample</button>
-            <button type="button" class="btn-primary btn-sm" id="runCompareBtn">Compare & Redline</button>
+          <div class="cmp-topbar-actions">
+            <button type="button" class="btn-subtle btn-sm" id="loadNdaCompareSampleBtn" title="Load built-in Standard NDA vs Aggressive Vendor NDA">
+              📄 Load NDA Sample
+            </button>
+            <button type="button" class="btn-subtle btn-sm" id="clearCompareBtn" title="Clear both documents">
+              🗑 Clear
+            </button>
+            <button type="button" class="btn-primary btn-sm" id="runCompareBtn">
+              ⚖️ Compare &amp; Redline
+            </button>
           </div>
         </div>
 
-        <div class="grid-2col">
-          <div>
-            <label for="compareDocA" style="font-size:0.85rem; font-weight:700; color:var(--text-secondary); display:block; margin-bottom:0.3rem;">Document A (Baseline / Standard Terms):</label>
-            <textarea id="compareDocA" class="textarea-legal" placeholder="Paste original agreement or standard template here..."></textarea>
+        <!-- Legend Strip -->
+        <div class="cmp-legend-strip">
+          <span><mark class="diff-word-del" style="border-radius:3px;padding:1px 5px;">Deleted text</mark> — removed from counter-offer</span>
+          <span><mark class="diff-word-ins" style="border-radius:3px;padding:1px 5px;">Inserted text</mark> — new language added</span>
+          <span>🔴 Hazardous · 🟡 Shifted · ⚪ Neutral</span>
+        </div>
+
+        <!-- Two-column document input -->
+        <div class="cmp-input-grid">
+          <!-- Doc A -->
+          <div class="cmp-input-col">
+            <div class="cmp-input-label-row">
+              <span class="cmp-panel-badge doc-a">A</span>
+              <label for="compareDocA" style="font-size:0.85rem;font-weight:700;color:var(--text-secondary);">
+                Document A — Baseline / Standard Terms
+              </label>
+              <button type="button" class="btn-subtle btn-xs" id="uploadDocABtn">⬆ Upload</button>
+              <input type="file" id="fileUploadA" class="hidden" accept=".txt,.md,.doc,.docx">
+            </div>
+            <textarea id="compareDocA" class="textarea-legal cmp-textarea"
+              placeholder="Paste original agreement or standard template here… or click Upload / drag & drop a file."></textarea>
           </div>
-          <div>
-            <label for="compareDocB" style="font-size:0.85rem; font-weight:700; color:var(--text-secondary); display:block; margin-bottom:0.3rem;">Document B (Counter-Offer / Revised Vendor Version):</label>
-            <textarea id="compareDocB" class="textarea-legal" placeholder="Paste counter-proposal or modified agreement here..."></textarea>
+
+          <!-- Doc B -->
+          <div class="cmp-input-col">
+            <div class="cmp-input-label-row">
+              <span class="cmp-panel-badge doc-b">B</span>
+              <label for="compareDocB" style="font-size:0.85rem;font-weight:700;color:var(--text-secondary);">
+                Document B — Counter-Offer / Revised Vendor Version
+              </label>
+              <button type="button" class="btn-subtle btn-xs" id="uploadDocBBtn">⬆ Upload</button>
+              <input type="file" id="fileUploadB" class="hidden" accept=".txt,.md,.doc,.docx">
+            </div>
+            <textarea id="compareDocB" class="textarea-legal cmp-textarea"
+              placeholder="Paste counter-proposal or modified agreement here… or click Upload / drag & drop a file."></textarea>
           </div>
         </div>
       </div>
