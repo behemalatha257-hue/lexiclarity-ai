@@ -10,24 +10,29 @@ class DocumentParser {
   static async parseFile(file) {
     if (!file) return '';
 
-    const fileName = file.name.toLowerCase();
+    const fileName = file.name ? file.name.toLowerCase() : '';
 
     // 1. PDF Documents (.pdf)
     if (fileName.endsWith('.pdf') || file.type === 'application/pdf') {
       return await this.extractPdfText(file);
     }
 
-    // 2. Word Documents (.docx)
-    if (fileName.endsWith('.docx') || file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+    // 2. Legacy Word (.doc) check
+    if (fileName.endsWith('.doc') && !fileName.endsWith('.docx')) {
+      throw new Error('Legacy .doc binary format detected. Please save your file as modern .docx or copy-paste the contract text directly.');
+    }
+
+    // 3. Word Documents (.docx)
+    if (fileName.endsWith('.docx') || file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || file.type === 'application/msword') {
       try {
         return await this.extractDocxText(file);
       } catch (err) {
         console.warn('Docx extraction warning:', err);
-        throw new Error('Could not parse Word document. Please ensure it is a standard .docx file or copy-paste the text.');
+        throw new Error(`Could not parse Word document: ${err.message || 'Please ensure it is a valid .docx file or copy-paste text directly.'}`);
       }
     }
 
-    // 3. Plain text, markdown, rtf, csv, json
+    // 4. Plain text, markdown, rtf, csv, json
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -93,15 +98,54 @@ class DocumentParser {
   static async extractDocxText(file) {
     const arrayBuffer = await file.arrayBuffer();
 
+    // 1. Try mammoth first
     if (typeof window.mammoth !== 'undefined') {
-      const result = await window.mammoth.extractRawText({ arrayBuffer });
-      const extracted = (result.value || '').trim();
-      if (extracted.length > 20) {
-        return extracted;
+      try {
+        const result = await window.mammoth.extractRawText({ arrayBuffer });
+        const extracted = (result.value || '').trim();
+        if (extracted.length > 20) {
+          return extracted;
+        }
+      } catch (mErr) {
+        console.warn('Mammoth extraction failed, trying XML decoder:', mErr);
       }
     }
 
+    // 2. Fallback: try decoding Word XML tags if uncompressed runs exist
+    try {
+      const uint8 = new Uint8Array(arrayBuffer);
+      const textDecoder = new TextDecoder('utf-8', { fatal: false });
+      const rawString = textDecoder.decode(uint8);
+      const xmlExtracted = this.extractWordXmlTags(rawString);
+      if (xmlExtracted && xmlExtracted.length > 20) {
+        return xmlExtracted;
+      }
+    } catch (xmlErr) {
+      console.warn('XML fallback failed:', xmlErr);
+    }
+
     throw new Error('Word (.docx) extractor could not find readable paragraphs. Please paste the agreement text directly.');
+  }
+
+  /**
+   * Extracts text from Word XML tags (<w:t>, <w:p>)
+   */
+  static extractWordXmlTags(xmlString) {
+    if (!xmlString || typeof xmlString !== 'string') return null;
+    const matches = xmlString.match(/<w:t(?:\s+[^>]*)?>([\s\S]*?)<\/w:t>/gi);
+    if (matches && matches.length > 0) {
+      const textPieces = matches.map(tag => {
+        return tag.replace(/<[^>]+>/g, '')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&amp;/g, '&')
+          .replace(/&quot;/g, '"');
+      });
+      let joined = textPieces.join(' ');
+      joined = joined.replace(/\s{2,}/g, ' ').replace(/\n\s*\n/g, '\n\n').trim();
+      if (joined.length > 20) return joined;
+    }
+    return null;
   }
 
   /**
@@ -116,8 +160,18 @@ class DocumentParser {
     }
 
     // Check if raw binary ZIP was read as text
-    if (text.startsWith('PK\x03\x04') && text.includes('[Content_Types].xml')) {
-      throw new Error('Raw archive detected. Please ensure you upload a readable .docx or paste contract text directly.');
+    if (text.startsWith('PK\x03\x04') || text.includes('[Content_Types].xml')) {
+      // Try XML tag extraction
+      const xmlExtracted = this.extractWordXmlTags(text);
+      if (xmlExtracted && xmlExtracted.length > 20) {
+        return xmlExtracted;
+      }
+      throw new Error('Raw compressed archive detected. Please upload a standard .docx or paste contract text directly.');
+    }
+
+    // Check for OLE binary header (.doc)
+    if (text.startsWith('\xD0\xCF\x11\xE0') || text.includes('Root Entry') || text.includes('WordDocument')) {
+      throw new Error('Legacy .doc binary format detected. Please save as modern .docx or paste text directly.');
     }
 
     let cleaned = text;

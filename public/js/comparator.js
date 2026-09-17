@@ -42,24 +42,65 @@ class ContractComparatorUI {
     if (uploadBtnA && fileA) {
       uploadBtnA.addEventListener('click', () => fileA.click());
       fileA.addEventListener('change', () => {
-        if (fileA.files[0]) this.readFileInto(fileA.files[0], document.getElementById('compareDocA'));
+        if (fileA.files[0]) {
+          this.readFileInto(fileA.files[0], document.getElementById('compareDocA'));
+          fileA.value = '';
+        }
       });
     }
     if (uploadBtnB && fileB) {
       uploadBtnB.addEventListener('click', () => fileB.click());
       fileB.addEventListener('change', () => {
-        if (fileB.files[0]) this.readFileInto(fileB.files[0], document.getElementById('compareDocB'));
+        if (fileB.files[0]) {
+          this.readFileInto(fileB.files[0], document.getElementById('compareDocB'));
+          fileB.value = '';
+        }
       });
     }
   }
 
-  static readFileInto(file, textarea) {
-    const reader = new FileReader();
-    reader.onload = e => {
-      textarea.value = e.target.result;
-      if (window.app) window.app.showToast(`📄 Loaded: ${file.name}`);
-    };
-    reader.readAsText(file);
+  static async readFileInto(file, textarea) {
+    if (!file || !textarea) return;
+    const originalPlaceholder = textarea.placeholder;
+    try {
+      textarea.value = `⏳ Extracting text from ${file.name}...`;
+      textarea.disabled = true;
+
+      let text = '';
+      if (window.DocumentParser) {
+        text = await window.DocumentParser.parseFile(file);
+      } else {
+        text = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = e => resolve(e.target.result);
+          reader.onerror = () => reject(new Error('Failed to read file.'));
+          reader.readAsText(file);
+        });
+      }
+
+      textarea.disabled = false;
+      textarea.placeholder = originalPlaceholder;
+
+      if (!text || text.trim().length < 15) {
+        throw new Error('No readable plain text found in this document.');
+      }
+
+      // Check if text is raw binary
+      if (text.startsWith('PK\x03\x04') || text.includes('[Content_Types].xml') || text.startsWith('%PDF-')) {
+        throw new Error('Document contains unparsed binary data. Please upload a standard .docx or .pdf file or paste the text directly.');
+      }
+
+      textarea.value = text.trim();
+      textarea.style.height = 'auto';
+      textarea.style.height = Math.min(textarea.scrollHeight, 400) + 'px';
+      if (window.app) window.app.showToast(`✅ Loaded: ${file.name}`);
+    } catch (err) {
+      textarea.disabled = false;
+      textarea.value = '';
+      textarea.placeholder = originalPlaceholder;
+      console.error('File parsing error in comparator:', err);
+      alert(`Could not extract text from "${file.name}":\n${err.message || 'Please upload a readable .docx, .pdf, or plain text document.'}`);
+    }
   }
 
   static loadNdaSample() {
@@ -85,11 +126,23 @@ class ContractComparatorUI {
   }
 
   static async runComparison() {
-    const docAText = document.getElementById('compareDocA').value.trim();
-    const docBText = document.getElementById('compareDocB').value.trim();
+    const docAEl = document.getElementById('compareDocA');
+    const docBEl = document.getElementById('compareDocB');
+    let docAText = docAEl ? docAEl.value.trim() : '';
+    let docBText = docBEl ? docBEl.value.trim() : '';
 
     if (!docAText || !docBText) {
       alert('Please provide text for both Document A (Baseline) and Document B (Counter-Offer).');
+      return;
+    }
+
+    // Guard against binary PK zip or PDF stream data
+    if (docAText.includes('[Content_Types].xml') || docAText.startsWith('PK') || docAText.startsWith('%PDF-')) {
+      alert('Document A contains unextracted binary characters (such as raw Word or PDF bytes). Please use the Upload button so the document extractor can parse it into plain text, or paste clean contract text.');
+      return;
+    }
+    if (docBText.includes('[Content_Types].xml') || docBText.startsWith('PK') || docBText.startsWith('%PDF-')) {
+      alert('Document B contains unextracted binary characters (such as raw Word or PDF bytes). Please use the Upload button so the document extractor can parse it into plain text, or paste clean contract text.');
       return;
     }
 

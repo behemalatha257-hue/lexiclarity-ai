@@ -10,8 +10,42 @@ class ComparisonEngine {
    * Compares two versions of a contract (Doc A vs Doc B)
    */
   static compare(docA, docB, options = {}) {
-    const analysisA = RiskAnalyzer.analyze(docA);
-    const analysisB = RiskAnalyzer.analyze(docB);
+    if (!docA || !docB || typeof docA !== 'string' || typeof docB !== 'string') {
+      return {
+        docASummary: { score: 0, trapsCount: 0 },
+        docBSummary: { score: 0, trapsCount: 0 },
+        scoreDelta: 0,
+        verdict: 'Invalid input documents.',
+        changesCount: { modified: 0, added: 0, removed: 0, total: 0 },
+        changes: []
+      };
+    }
+
+    const cleanA = RiskAnalyzer.cleanText(docA);
+    const cleanB = RiskAnalyzer.cleanText(docB);
+
+    if (cleanA.startsWith('[ERROR:') || cleanB.startsWith('[ERROR:')) {
+      return {
+        docASummary: { score: 0, trapsCount: 1 },
+        docBSummary: { score: 0, trapsCount: 1 },
+        scoreDelta: 0,
+        verdict: 'Binary or unextracted document detected. Please upload valid text or Word .docx files.',
+        changesCount: { modified: 1, added: 0, removed: 0, total: 1 },
+        changes: [{
+          type: 'CRITICAL',
+          title: 'Binary Document Extraction Error',
+          category: 'Document Parsing',
+          clauseA: cleanA.slice(0, 120),
+          clauseB: cleanB.slice(0, 120),
+          similarity: 0,
+          riskShift: 'Hazardous',
+          explanation: 'One or both documents contain raw binary Word/PDF archives instead of plain text.'
+        }]
+      };
+    }
+
+    const analysisA = RiskAnalyzer.analyze(cleanA);
+    const analysisB = RiskAnalyzer.analyze(cleanB);
 
     const clausesA = analysisA.clauses || [];
     const clausesB = analysisB.clauses || [];
