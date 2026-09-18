@@ -6,6 +6,8 @@ LexiClarity AI is a production-grade GenAI-powered legal document navigator and 
 
 ---
 
+## 🚀 Deployed URL
+Live Production Link: https://lexiclarity-ai.vercel.app/
 ## 🌟 Live Features
 
 ### 1. 🛡️ ClauseRadar™ Risk & Trap Matrix
